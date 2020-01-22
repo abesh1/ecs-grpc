@@ -1,0 +1,42 @@
+Parameters:
+  MeshName:
+    Type: String
+  NodeName:
+    Type: String
+  ServiceName:
+    Type: String
+  MethodName:
+    Type: String
+  Port:
+    Type: Number
+
+Resources:
+
+  VirtualRouter:
+    Type: AWS::AppMesh::VirtualRouter
+    Properties:
+      MeshName: !Ref MeshName
+      VirtualRouterName: virtual-router
+      Spec:
+        Listeners:
+          - PortMapping:
+              Port: !Ref Port
+              Protocol: grpc
+
+  Route:
+    DependsOn:
+      - VirtualRouter
+    Type: AWS::AppMesh::Route
+    Properties:
+      MeshName: !Ref MeshName
+      VirtualRouterName: virtual-router
+      RouteName: route
+      Spec:
+        GrpcRoute:
+          Action:
+            WeightedTargets:
+              - VirtualNode: !Ref NodeName
+                Weight: 100
+          Match:
+            ServiceName: !Ref ServiceName
+            MethodName: !Ref MethodName

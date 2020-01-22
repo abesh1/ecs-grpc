@@ -1,0 +1,95 @@
+version: 2.1
+
+parameters:
+  trigger:
+    type: boolean
+    default: true
+  color_client:
+    type: boolean
+    default: false
+  color_server:
+    type: boolean
+    default: false
+
+executors:
+  go:
+    docker:
+      - image: golang:1.13.4
+        environment:
+          GO111MODULE: "on"
+  default:
+    docker:
+      - image: docker:19.03.5-git
+        user: root
+jobs:
+  trigger-workflows:
+    executor:
+      name: go
+    steps:
+      - checkout
+#      - run: apk update && apk add curl && apk add bash
+      - run:
+          name: Trigger workflows
+          command: chmod +x scripts/search_target_services.sh && scripts/search_target_services.sh
+
+  build:
+    executor:
+      name: go
+    parameters:
+      service_name:
+        type: string
+    working_directory: /go/src/github.com/jiro94/ecs-grpc
+    steps:
+      - checkout
+      - run: apt-get update && apt-get -y install make && apt-get -y install patch && apt-get -y install python3 && apt-get -y install amazon-ecr-credential-helper
+      - run: mv .docker /$HOME
+      - run: make build SERVICE_NAME=<< parameters.service_name >>
+      - run: make deploy SERVICE_NAME=<< parameters.service_name >>
+
+#  deploy:
+#    parameters:
+#      package_name:
+#        type: string
+#    steps:
+#      - checkout
+#      - setup_remote_docker
+#      - attach_workspace:
+#          at: ~/project
+#      # This step is added to show that files are available from the build job.
+#      - run:
+#          name: Content to deploy
+#          command: ls && cat build.txt
+#      - deploy:
+#          name: Deploy
+#          command: echo "Deploying << parameters.service_name >> ..."
+
+workflows:
+  version: 2
+  ci:
+    when: << pipeline.parameters.trigger >>
+    jobs:
+      - trigger-workflows
+
+  color_client:
+    when: << pipeline.parameters.color_client >>
+    jobs:
+      - build:
+          name: client-build
+          service_name: color_client
+  #      - deploy:
+  #          name: client-deploy
+  #          service_name: color_client
+  #          requires:
+  #            - client-build
+
+  color_server:
+    when: << pipeline.parameters.color_server >>
+    jobs:
+      - build:
+          name: server-build
+          service_name: color_server
+#      - deploy:
+#          name: server-deploy
+#          service_name: color_server
+#          requires:
+#            - server-build

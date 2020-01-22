@@ -1,0 +1,34 @@
+Parameters:
+  MeshName:
+    Type: String
+  NodeName:
+    Type: String
+  Port:
+    Type: Number
+  ProjectName:
+    Type: String
+  SubDomain:
+    Type: String
+
+Resources:
+  ServerNode:
+    Type: AWS::AppMesh::VirtualNode
+    Properties:
+      MeshName: !Ref MeshName
+      VirtualNodeName: !Ref NodeName
+      Spec:
+        Listeners:
+          - PortMapping:
+              Port: !Ref Port
+              Protocol: grpc
+            HealthCheck:
+              HealthyThreshold: 2
+              IntervalMillis: 5000
+              TimeoutMillis: 2000
+              UnhealthyThreshold: 3
+              Port: !Ref Port
+              Protocol: grpc
+        ServiceDiscovery:
+          AWSCloudMap:
+            NamespaceName: !Sub '${ProjectName}.${SubDomain}'
+            ServiceName: !Ref NodeName

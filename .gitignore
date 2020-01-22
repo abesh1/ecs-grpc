@@ -1,0 +1,7 @@
+.idea
+.env
+/bazel*
+.terraform
+*.tfstate
+*.tfstate.backup
+terraform.tfvars

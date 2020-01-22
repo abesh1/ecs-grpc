@@ -1,0 +1,38 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_docker//container:image.bzl", "container_image")
+load("@io_bazel_rules_docker//container:container.bzl", "container_push")
+
+go_library(
+    name = "go_default_library",
+    srcs = ["main.go"],
+    importpath = "github.com/jiro94/ecs-grpc/services/color_client",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//services/color_server/color:go_default_library",
+        "@org_golang_google_grpc//:go_default_library",
+        "@org_golang_google_grpc//codes:go_default_library",
+        "@org_golang_google_grpc//status:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "color_client",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+container_image(
+    name = "color_client_image",
+    base = "@distroless_base_image//image",
+    files = [":color_client"],
+    entrypoint = ["/color_client"],
+)
+
+container_push(
+    name = "push_color_client_image",
+    format = "Docker",
+    image = ":color_client_image",
+    registry = "151440741398.dkr.ecr.us-west-2.amazonaws.com",
+    repository = "howto-grpc/color_client",
+    tag = "latest"
+)
